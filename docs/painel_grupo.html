@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel Unificado - Grupo</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+    :root {
+        --primary: #2563eb; --primary-dark: #1e40af; --secondary: #64748b;
+        --success: #10b981; --warning: #f59e0b; --danger: #ef4444;
+        --bg: #f3f4f6; --card-bg: #ffffff; --text: #1f2937; --text-light: #6b7280;
+        --border: #e5e7eb; --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+    [data-theme="dark"] {
+        --primary: #3b82f6; --primary-dark: #60a5fa; --secondary: #94a3b8;
+        --bg: #0f172a; --card-bg: #1e293b; --text: #f3f4f6; --text-light: #9ca3af;
+        --border: #334155; --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+    }
+    * { box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding-bottom: 60px; transition: background-color .3s, color .3s; }
+    .container { max-width: 1440px; margin: 0 auto; padding: 0 20px; }
+
+    .header-wrapper { background-color: var(--card-bg); border-bottom: 1px solid var(--border); padding: 1.25rem 0; position: sticky; top: 0; z-index: 50; box-shadow: var(--shadow); }
+    .header-content { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+    .header-content h1 { margin: 0; font-size: 1.4rem; }
+    .header-content .sub { color: var(--text-light); font-size: .85rem; margin-top: 2px; }
+    .header-actions { display: flex; gap: 10px; align-items: center; }
+    .btn { padding: 9px 16px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--text); font-weight: 600; font-size: .85rem; cursor: pointer; transition: .2s; }
+    .btn:hover { background: var(--border); }
+
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; margin-top: 24px; }
+    .kpi-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; box-shadow: var(--shadow); position: relative; overflow: hidden; }
+    .kpi-card::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--secondary); }
+    .kpi-card.ok::before { background: var(--success); }
+    .kpi-card.warn::before { background: var(--warning); }
+    .kpi-card.err::before { background: var(--danger); }
+    .kpi-name { font-weight: 700; font-size: 1.05rem; }
+    .kpi-updated { font-size: .75rem; color: var(--text-light); margin-top: 2px; }
+    .kpi-nums { display: flex; gap: 18px; margin-top: 12px; }
+    .kpi-num b { display: block; font-size: 1.5rem; line-height: 1; }
+    .kpi-num span { font-size: .7rem; text-transform: uppercase; letter-spacing: .04em; color: var(--text-light); }
+    .kpi-num.online b { color: var(--success); }
+    .kpi-num.offline b { color: var(--danger); }
+    .kpi-link { display: inline-block; margin-top: 12px; font-size: .78rem; color: var(--primary); text-decoration: none; }
+    .kpi-link:hover { text-decoration: underline; }
+
+    .totals-bar { display: flex; flex-wrap: wrap; gap: 24px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; margin-top: 18px; box-shadow: var(--shadow); }
+    .totals-bar .t { display: flex; flex-direction: column; }
+    .totals-bar .t b { font-size: 1.3rem; }
+    .totals-bar .t span { font-size: .72rem; color: var(--text-light); text-transform: uppercase; letter-spacing: .04em; }
+
+    .controls-bar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 24px; margin-bottom: 14px; }
+    .search-input, .select-input { padding: 9px 13px; border-radius: 8px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text); outline: none; font-size: .9rem; }
+    .search-input { flex: 1; min-width: 220px; }
+    .search-input:focus, .select-input:focus { border-color: var(--primary); }
+
+    .table-container { overflow-x: auto; border-radius: 12px; border: 1px solid var(--border); background: var(--card-bg); box-shadow: var(--shadow); }
+    table { width: 100%; border-collapse: collapse; min-width: 720px; }
+    th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border); font-size: .87rem; }
+    th { background: var(--bg); font-weight: 700; color: var(--text-light); font-size: .74rem; text-transform: uppercase; letter-spacing: .03em; cursor: pointer; white-space: nowrap; }
+    th:hover { color: var(--primary); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background-color: rgba(37, 99, 235, .04); }
+
+    .badge { padding: 4px 10px; border-radius: 20px; font-size: .72rem; font-weight: 700; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+    .badge-online { background: rgba(16, 185, 129, .12); color: var(--success); border: 1px solid rgba(16, 185, 129, .25); }
+    .badge-offline { background: rgba(245, 158, 11, .12); color: var(--warning); border: 1px solid rgba(245, 158, 11, .25); }
+    .badge-error { background: rgba(239, 68, 68, .12); color: var(--danger); border: 1px solid rgba(239, 68, 68, .25); }
+
+    .empty-state, .loading-state { text-align: center; padding: 50px 20px; color: var(--text-light); }
+    .error-note { background: rgba(239, 68, 68, .08); border: 1px solid rgba(239, 68, 68, .25); color: var(--danger); border-radius: 10px; padding: 12px 16px; margin-top: 12px; font-size: .85rem; }
+
+    footer { text-align: center; color: var(--text-light); font-size: .78rem; margin-top: 30px; }
+</style>
+</head>
+<body>
+
+<div class="header-wrapper">
+    <div class="container header-content">
+        <div>
+            <h1>Painel Unificado — Grupo</h1>
+            <div class="sub" id="resumo-header">Carregando dados das garagens…</div>
+        </div>
+        <div class="header-actions">
+            <button class="btn" id="btn-refresh">↻ Atualizar</button>
+            <button class="btn" id="btn-theme">🌙 Tema</button>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+
+    <div class="kpi-grid" id="kpi-grid"></div>
+
+    <div class="totals-bar" id="totals-bar" style="display:none;">
+        <div class="t"><b id="tot-frota">-</b><span>Veículos no grupo</span></div>
+        <div class="t"><b id="tot-online" style="color:var(--success)">-</b><span>Online hoje</span></div>
+        <div class="t"><b id="tot-offline" style="color:var(--danger)">-</b><span>Offline / sem comunicação</span></div>
+        <div class="t"><b id="tot-garagens">-</b><span>Garagens reportando</span></div>
+    </div>
+
+    <div id="erro-container"></div>
+
+    <div class="controls-bar">
+        <input type="text" class="search-input" id="busca" placeholder="Buscar por prefixo, série ou garagem...">
+        <select class="select-input" id="filtro-garagem"><option value="">Todas as garagens</option></select>
+        <select class="select-input" id="filtro-status">
+            <option value="">Todos os status</option>
+            <option value="online">Online</option>
+            <option value="offline">Offline</option>
+        </select>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th data-col="garagem">Garagem</th>
+                    <th data-col="prefixo">Prefixo</th>
+                    <th data-col="serie">Série</th>
+                    <th data-col="versao">Versão</th>
+                    <th data-col="eod">EOD</th>
+                    <th data-col="ultima">Última comunicação</th>
+                    <th data-col="status">Status</th>
+                </tr>
+            </thead>
+            <tbody id="tabela-body">
+                <tr><td colspan="7" class="loading-state">Carregando veículos…</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <footer id="footer-info"></footer>
+</div>
+
+<script>
+/* ==============================================================
+   CONFIGURAÇÃO: adicione/remova garagens do grupo aqui.
+   O "arquivo" precisa bater com o nome publicado pelo bot.pyw:
+   {nome_garagem_slug}_veiculos.json (ex: config.ini [Garage] name
+   "TCM Forquilha" -> tcm_forquilha_veiculos.json)
+   ============================================================== */
+const GARAGENS = [
+    { label: "TCM Forquilha", arquivo: "tcm_forquilha_veiculos.json" },
+    { label: "TCM Raposa",    arquivo: "tcm_raposa_veiculos.json" },
+    { label: "TCM Ribamar",   arquivo: "tcm_ribamar_veiculos.json" },
+];
+
+const AUTO_REFRESH_MINUTOS = 5;
+
+let DADOS_GARAGENS = [];   // [{label, dados|null, erro|null}]
+let LINHAS = [];           // tabela achatada: {garagem, prefixo, serie, versao, eod, ultima, status}
+let ORDENACAO = { col: 'garagem', asc: true };
+
+function fmtDataHora(iso) {
+    if (!iso) return '—';
+    try {
+        const d = new Date(iso.replace(' ', 'T'));
+        if (isNaN(d.getTime())) return iso;
+        return d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
+    } catch { return iso; }
+}
+
+function tempoRelativo(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    const diffMin = Math.round((Date.now() - d.getTime()) / 60000);
+    if (diffMin < 1) return 'agora mesmo';
+    if (diffMin < 60) return `há ${diffMin} min`;
+    const diffH = Math.round(diffMin / 60);
+    if (diffH < 24) return `há ${diffH}h`;
+    return `há ${Math.round(diffH / 24)}d`;
+}
+
+async function buscarGaragem(g) {
+    try {
+        const resp = await fetch(g.arquivo, { cache: 'no-store' });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const dados = await resp.json();
+        return { label: g.label, dados, erro: null };
+    } catch (e) {
+        return { label: g.label, dados: null, erro: e.message || 'falha ao buscar' };
+    }
+}
+
+function montarLinhas() {
+    const linhas = [];
+    for (const g of DADOS_GARAGENS) {
+        if (!g.dados) continue;
+        const { frota = [], metadata = {}, historico = {} } = g.dados;
+        for (const prefixo of frota) {
+            const meta = metadata[prefixo] || {};
+            const logs = historico[prefixo] || [];
+            const ultimoLog = logs[0] || null;
+            let status = 'offline';
+            if (ultimoLog) {
+                const hoje = new Date().toISOString().slice(0, 10);
+                const dataLog = (ultimoLog.d || '').slice(0, 10);
+                if (dataLog === hoje) status = ultimoLog.e ? 'erro' : 'online';
+            }
+            linhas.push({
+                garagem: g.label,
+                prefixo: String(prefixo),
+                serie: meta.serie || 'N/A',
+                versao: meta.versao || 'N/A',
+                eod: meta.eod || 'N/A',
+                ultima: ultimoLog ? ultimoLog.d : null,
+                status,
+            });
+        }
+    }
+    return linhas;
+}
+
+function badgeStatus(status) {
+    if (status === 'online') return `<span class="badge badge-online">● Online</span>`;
+    if (status === 'erro') return `<span class="badge badge-error">● Erro</span>`;
+    return `<span class="badge badge-offline">● Offline</span>`;
+}
+
+function renderKPIs() {
+    const grid = document.getElementById('kpi-grid');
+    grid.innerHTML = '';
+    let totFrota = 0, totOnline = 0, totOffline = 0, garagensOk = 0;
+
+    for (const g of DADOS_GARAGENS) {
+        const card = document.createElement('div');
+        if (g.erro) {
+            card.className = 'kpi-card err';
+            card.innerHTML = `
+                <div class="kpi-name">${g.label}</div>
+                <div class="kpi-updated">Sem dados: ${g.erro}</div>`;
+            grid.appendChild(card);
+            continue;
+        }
+        garagensOk++;
+        const d = g.dados;
+        const total = (d.frota || []).length;
+        const online = d.online || 0;
+        const offline = d.offline ?? Math.max(total - online, 0);
+        totFrota += total; totOnline += online; totOffline += offline;
+
+        card.className = 'kpi-card ' + (offline > 0 && offline >= online ? 'warn' : 'ok');
+        card.innerHTML = `
+            <div class="kpi-name">${g.label}</div>
+            <div class="kpi-updated">Atualizado ${tempoRelativo(d.last_update) || fmtDataHora(d.last_update)}</div>
+            <div class="kpi-nums">
+                <div class="kpi-num online"><b>${online}</b><span>Online</span></div>
+                <div class="kpi-num offline"><b>${offline}</b><span>Offline</span></div>
+                <div class="kpi-num"><b>${total}</b><span>Frota</span></div>
+            </div>`;
+        grid.appendChild(card);
+    }
+
+    document.getElementById('tot-frota').textContent = totFrota;
+    document.getElementById('tot-online').textContent = totOnline;
+    document.getElementById('tot-offline').textContent = totOffline;
+    document.getElementById('tot-garagens').textContent = `${garagensOk}/${DADOS_GARAGENS.length}`;
+    document.getElementById('totals-bar').style.display = 'flex';
+
+    document.getElementById('resumo-header').textContent =
+        `${totFrota} veículo(s) em ${garagensOk} garagem(ns) · ${totOnline} online, ${totOffline} offline`;
+
+    const erros = DADOS_GARAGENS.filter(g => g.erro);
+    const errBox = document.getElementById('erro-container');
+    errBox.innerHTML = erros.length
+        ? `<div class="error-note">⚠️ Não foi possível carregar: ${erros.map(g => g.label).join(', ')}. O JSON pode ainda não ter sido publicado por essa garagem, ou o servidor está com problema de comunicação.</div>`
+        : '';
+}
+
+function renderFiltroGaragem() {
+    const sel = document.getElementById('filtro-garagem');
+    sel.innerHTML = '<option value="">Todas as garagens</option>' +
+        GARAGENS.map(g => `<option value="${g.label}">${g.label}</option>`).join('');
+}
+
+function aplicarFiltrosEOrdenar() {
+    const termo = document.getElementById('busca').value.trim().toLowerCase();
+    const garagemFiltro = document.getElementById('filtro-garagem').value;
+    const statusFiltro = document.getElementById('filtro-status').value;
+
+    let filtradas = LINHAS.filter(l => {
+        if (garagemFiltro && l.garagem !== garagemFiltro) return false;
+        if (statusFiltro === 'online' && l.status !== 'online') return false;
+        if (statusFiltro === 'offline' && l.status === 'online') return false;
+        if (termo) {
+            const alvo = `${l.prefixo} ${l.serie} ${l.garagem}`.toLowerCase();
+            if (!alvo.includes(termo)) return false;
+        }
+        return true;
+    });
+
+    filtradas.sort((a, b) => {
+        const va = (a[ORDENACAO.col] ?? '').toString();
+        const vb = (b[ORDENACAO.col] ?? '').toString();
+        const cmp = va.localeCompare(vb, 'pt-BR', { numeric: true });
+        return ORDENACAO.asc ? cmp : -cmp;
+    });
+
+    return filtradas;
+}
+
+function renderTabela() {
+    const linhas = aplicarFiltrosEOrdenar();
+    const tbody = document.getElementById('tabela-body');
+
+    if (!linhas.length) {
+        tbody.innerHTML = `<tr><td colspan="7" class="empty-state">Nenhum veículo encontrado com esse filtro.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = linhas.map(l => `
+        <tr>
+            <td>${l.garagem}</td>
+            <td><b>${l.prefixo}</b></td>
+            <td>${l.serie}</td>
+            <td>${l.versao}</td>
+            <td>${l.eod}</td>
+            <td>${fmtDataHora(l.ultima)}</td>
+            <td>${badgeStatus(l.status)}</td>
+        </tr>
+    `).join('');
+}
+
+async function carregarTudo() {
+    document.getElementById('resumo-header').textContent = 'Carregando dados das garagens…';
+    DADOS_GARAGENS = await Promise.all(GARAGENS.map(buscarGaragem));
+    LINHAS = montarLinhas();
+    renderKPIs();
+    renderTabela();
+    document.getElementById('footer-info').textContent =
+        `Atualização automática a cada ${AUTO_REFRESH_MINUTOS} min · Última busca: ${new Date().toLocaleTimeString('pt-BR')}`;
+}
+
+// --- eventos ---
+document.getElementById('busca').addEventListener('input', renderTabela);
+document.getElementById('filtro-garagem').addEventListener('change', renderTabela);
+document.getElementById('filtro-status').addEventListener('change', renderTabela);
+document.getElementById('btn-refresh').addEventListener('click', carregarTudo);
+
+document.querySelectorAll('th[data-col]').forEach(th => {
+    th.addEventListener('click', () => {
+        const col = th.dataset.col;
+        ORDENACAO.asc = ORDENACAO.col === col ? !ORDENACAO.asc : true;
+        ORDENACAO.col = col;
+        renderTabela();
+    });
+});
+
+document.getElementById('btn-theme').addEventListener('click', () => {
+    const atual = document.documentElement.getAttribute('data-theme');
+    const novo = atual === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', novo);
+    localStorage.setItem('painel-grupo-theme', novo);
+});
+
+(function initTheme() {
+    const salvo = localStorage.getItem('painel-grupo-theme');
+    const preferido = salvo || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', preferido);
+})();
+
+renderFiltroGaragem();
+carregarTudo();
+setInterval(carregarTudo, AUTO_REFRESH_MINUTOS * 60 * 1000);
+</script>
+
+</body>
+</html>
